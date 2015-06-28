@@ -1,100 +1,112 @@
-#include <DHT.h>
-#include "HL1606stripPWM.h"
-#include <Wire.h>
-#include "RTClib.h"
-#include <Adafruit_BMP085.h>
+#include <DHT.h> // librairie capteur humidite/temperature
+#include "HL1606strip.h" // librairie controle bandeaue led
+#include <Wire.h> // librairie i2c necessaire pour horloge temps reel
+#include "RTClib.h" // librairie horloge temps reel
+#include <Adafruit_BMP085.h> //librairie capteur de pression/temperature
 
-#define DEBUG
+#define DEBUG // def pour choisir si debug serie ou non
 
-#define BOUTON 3
-#define HUMIDITY 2
-#define LED_QUANTITY 304
-#define DHTTYPE DHT21
+#define BOUTON 2 // pin bouton
+#define HUMIDITY 3 // pin capteur humidité
+#define LED_QUANTITY 184
+#define DHTTYPE DHT21 // type capteur humidite/temperature
 
-DHT dht(HUMIDITY, DHTTYPE);
+#define LIGHT_LIMIT 150 // limite luminosité avant extinction
 
-RTC_DS1307 rtc;
-DateTime now;
+DHT dht(HUMIDITY, DHTTYPE); // instanciation capteur d'humditie/temperature
 
-Adafruit_BMP085 bmp;
+enum led_segment{
+  GAUCHE = 0,
+  DROITE,
+  HAUT,
+  BAS
+};
 
-byte lightControl=1;
+RTC_DS1307 rtc; //instanciation horloge temps réel DS1307
+DateTime now; //variable pour stocker date
 
-int latchPin = 10;
+Adafruit_BMP085 bmp; // instanciation capteur de pression
 
-HL1606stripPWM strip = HL1606stripPWM(LED_QUANTITY, latchPin);
+HL1606strip strip = HL1606strip(11, 10, 13, 184); // instanciation bandeau de led
+
+byte k = 0;
+byte lightControl = 1; // variable pour controle automatique allumage en fontion de la luminosité ambiante
 
 void setup() {
 
-  #ifdef DEBUG
+#ifdef DEBUG
   Serial.begin(9600);
   Serial.println("hello!");
- #endif
- 
- pinMode(BOUTON,INPUT_PULLUP);
- 
-initRTC();
-initLED();
-initPT();  
-initH();
+#endif
+
+  pinMode(BOUTON, INPUT_PULLUP); // bouton facade
+
+
+  initRTC(); // initialisation de l'horloge temps réel
+  initPT(); // intialisation capteur pression/temperature BMP180
+  initH(); // initialisation capteur humidite/temperature
+
 
 }
 
 void loop() {
- 
-static byte k=0;
-  
-if(digitalRead(BOUTON)==0) {
-  
-  if(++k>2) k=0;
-  while(digitalRead(BOUTON)==0);
+
+  bouton(); // bouton appuye ? 
+
+  if ((measureLight() && lightControl == 1) || lightControl == 0) { // control automoatique de la luminosite (pas assez de lumière ambiante = on eteint)
+
+    switch (k) { // en fonction de k, pilotee par bouton(), on affiche une fonction definie
+
+      case 0: // mode horloge temps reel
+       
+        displayTime();
+        
+        break;
+
+      case 1: // mode capteurs ambiants
+
+        displayPT();
+        displayH();
+
+        break;
+
+      case 2: // mode capteur de lumière
+
+       displayLight();
+
+        break;
+
+      default:
+        break;
+
+    }
+
   delay(100);
   
+  } else setLEDOFF(1); // si pas assez de lumière on Eteint tout
+
 }
 
-if((measureLight() && lightControl==1) || lightControl==0) {
+void bouton() {
 
-switch (k) {
-    
-    case 0:
-    
-      #ifdef DEBUG;
-      Serial.println("Mode = ColorSwirl");
-      #endif
-      
-      colorSwirl();
-    
-    break;
-    
-    case 1:
-    
-    #ifdef DEBUG;
-      Serial.println("Mode = Environnement Sensor");
-      #endif
-      
-      displayPT();
-      displayH();
-      
-    break;
-    
-    case 2:
-    
-    #ifdef DEBUG;
-      Serial.println("Mode = Time");
-      #endif
-      
-      displayTime();
-      
-    break;
-    
-    default:
-    break;
-    
-    }
+  if (digitalRead(BOUTON) == LOW) { // si bouton appuye
+
+    if (++k > 2) k = 0; // on incremente k de 1, si elle depasse 2 on retourne à 0
+    setLEDOFF(0); // on efface tout
+    while (digitalRead(BOUTON) == LOW); // tant que le bouton est appuye, on attend
+    delay(100); // permet d'eviter les effets de rebond
   }
-
 }
 
-
-
-
+//void loop() {
+//  
+//  setSeg(HAUT, 30, 0, 100, RED);
+//  delay(1000);
+//   setSeg(BAS, 30, 0, 100, RED);
+//  delay(1000);
+//   setSeg(GAUCHE, 30, 0, 100, RED);
+//  delay(1000);
+//   setSeg(DROITE, 30, 0, 100, RED);
+//  delay(1000);
+//  setLEDOFF(1);
+//  }

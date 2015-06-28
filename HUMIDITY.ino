@@ -4,10 +4,7 @@ void initH() {
   
   void displayH() {
 
-   // Reading temperature or humidity takes about 250 milliseconds!
-  // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   float h = dht.readHumidity();
-  // Read temperature as Celsius
   float t = dht.readTemperature();
   
    #ifdef DEBUG;
@@ -17,4 +14,7 @@ void initH() {
       Serial.println(t);
    #endif
    
+   setSeg(GAUCHE, h, 0, 100, TEAL);
+   setSeg(DROITE, t, 15, 35, YELLOW); 
+
   }
