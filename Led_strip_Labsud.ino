@@ -7,6 +7,7 @@
 #define DEBUG // def pour choisir si debug serie ou non
 
 #define BOUTON 2 // pin bouton
+#define SOUND A0 // pin bouton
 #define HUMIDITY 3 // pin capteur humidité
 #define LED_QUANTITY 184
 #define DHTTYPE DHT21 // type capteur humidite/temperature
@@ -53,7 +54,7 @@ void loop() {
 
   bouton(); // bouton appuye ? 
 
-  if ((measureLight() && lightControl == 1) || lightControl == 0) { // control automoatique de la luminosite (pas assez de lumière ambiante = on eteint)
+  if (((measureLight() && lightControl == 1) || lightControl == 0)&& digitalRead(SOUND)==HIGH) { // control automoatique de la luminosite (pas assez de lumière ambiante = on eteint)
 
     switch (k) { // en fonction de k, pilotee par bouton(), on affiche une fonction definie
 
@@ -81,10 +82,12 @@ void loop() {
 
     }
 
-  delay(100);
+  //delay(100);
   
-  } else setLEDOFF(1); // si pas assez de lumière on Eteint tout
-
+  } else {
+    setLEDOFF(1); // si pas assez de lumière on Eteint tout
+    delay(100);
+  }
 }
 
 void bouton() {
